@@ -12,75 +12,56 @@ function base64ToArrayBuffer(base64) {
   return bytes.buffer
 }
 
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event))
-})
-
-async function handleRequest({ request }) {
+async function handleRequest(request) {
   try {
     if (request.method === 'GET') {
-      const res = new Response(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Img color</title>
-        </head>
-        <body>
-          Upload an image (JPEG or PNG):
-          <input type="file" onchange="post()"/>
-
-          <script>
-            function post() {
-              var file = document.querySelector('input[type=file]').files[0];
-              var reader = new FileReader();
-
-              reader.addEventListener('load', function () {
-                fetch(location.href, {
-                  method: "POST",
-                  body: reader.result
-                })
-                  .then(res => res.text())
-                  .then(rgb => {
-                    document.body.style.backgroundColor = "rgb(" + rgb + ")";
-                  });
-              }, false);
-
-              if (file) {
-                reader.readAsDataURL(file);
-              }
-            }
-          </script>
-        </body>
-      </html>
-    `)
-      res.headers.set('content-type', 'text/html')
-      return res
+      return new Response('OK', { status: 200 })
     }
 
     if (request.method === 'POST') {
-      const [data, base64] = (await request.text()).split(',')
-
-      if (data === 'data:image/jpeg;base64') {
-        var rawImageData = jpeg.decode(base64ToArrayBuffer(base64))
-        return new Response(meanRgba(rawImageData.width, rawImageData.height, rawImageData.data))
+      const url = await request.text();
+      
+      // Fetch the image directly
+      const imageResponse = await fetch(url);
+      if (!imageResponse.ok) {
+        return new Response(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`, { status: 500 });
       }
-
-      if (data === 'data:image/png;base64') {
-        return await new Promise(ok => {
-          str(base64ToArrayBuffer(base64))
-            .pipe(
-              new PNG({
-                filterType: 4,
+      
+      const contentType = imageResponse.headers.get('content-type');
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      if (contentType.includes('image/jpeg')) {
+        try {
+          var rawImageData = jpeg.decode(arrayBuffer);
+          return new Response(JSON.stringify(meanRgba(rawImageData.width, rawImageData.height, rawImageData.data)));
+        } catch (e) {
+          return new Response('Error processing JPEG: ' + e.message, { status: 500 });
+        }
+      }
+      
+      if (contentType.includes('image/png')) {
+        try {
+          return await new Promise((ok, fail) => {
+            str(uint8Array)
+              .pipe(
+                new PNG({
+                  filterType: 4,
+                })
+              )
+              .on('parsed', function() {
+                ok(new Response(JSON.stringify(meanRgba(this.width, this.height, this.data))));
               })
-            )
-            .on('parsed', function() {
-              ok(new Response(meanRgba(this.width, this.height, this.data)))
-            })
-        })
+              .on('error', function(err) {
+                fail(new Response('Error processing PNG: ' + err.message, { status: 500 }));
+              });
+          });
+        } catch (e) {
+          return new Response('Error in PNG processing: ' + e.message, { status: 500 });
+        }
       }
-
-      return new Response('unsupported: ' + data, { status: 400 })
+      
+      return new Response('Unsupported image type: ' + contentType, { status: 400 });
     }
 
     return new Response('not found', { status: 404 })
@@ -103,4 +84,8 @@ function meanRgba(w, h, matrix) {
   }
 
   return [Math.floor(rgb[0] / size), Math.floor(rgb[1] / size), Math.floor(rgb[2] / size)]
+}
+
+export default {
+  fetch: handleRequest
 }
