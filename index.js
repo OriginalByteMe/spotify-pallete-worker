@@ -1,24 +1,18 @@
 import { PNG } from 'pngjs/browser'
 import str from 'string-to-stream'
 var jpeg = require('jpeg-js')
-
-function base64ToArrayBuffer(base64) {
-  var binary_string = atob(base64)
-  var len = binary_string.length
-  var bytes = new Uint8Array(len)
-  for (var i = 0; i < len; i++) {
-    bytes[i] = binary_string.charCodeAt(i)
-  }
-  return bytes.buffer
-}
+import PixelPeeper from "./PixelPeeper.js";
 
 async function handleRequest(request) {
   try {
-    if (request.method === 'GET') {
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    if (request.method === 'GET' && path === '/api/health') {
       return new Response('OK', { status: 200 })
     }
 
-    if (request.method === 'POST') {
+    if (request.method === 'POST' && path === '/api/pallete') {
       const url = await request.text();
       
       // Fetch the image directly
@@ -62,6 +56,33 @@ async function handleRequest(request) {
       }
       
       return new Response('Unsupported image type: ' + contentType, { status: 400 });
+    }
+
+    if (request.method === 'POST' && path === '/api/data_inspect') {
+      const url = await request.text();
+      
+      // Fetch the image
+      const imageResponse = await fetch(url);
+      if (!imageResponse.ok) {
+        return new Response(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`, { status: 500 });
+      }
+      
+      const contentType = imageResponse.headers.get('content-type');
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      const imageData = jpeg.decode(arrayBuffer);
+      
+      // Create a PixelPeeper instance to get detailed color information
+      const peeper = new PixelPeeper();
+      try {
+        const data = await peeper.checkAndSeeTheImageData(uint8Array);
+        return new Response(JSON.stringify(data), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (e) {
+        return new Response('Error in image analysis: ' + e.message, { status: 500 });
+      }
     }
 
     return new Response('not found', { status: 404 })
