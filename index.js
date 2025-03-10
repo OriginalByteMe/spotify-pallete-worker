@@ -1,5 +1,3 @@
-import { PNG } from 'pngjs/browser';
-import str from 'string-to-stream';
 import PixelPeeper from "./PixelPeeper.js";
 var jpeg = require('jpeg-js')
 
@@ -33,8 +31,6 @@ async function handleRequest(request) {
           return new Response(JSON.stringify(pallete), {
             headers: { 'Content-Type': 'application/json' }
           });
-          // var rawImageData = jpeg.decode(arrayBuffer);
-          // return new Response(JSON.stringify(meanRgba(rawImageData.width, rawImageData.height, rawImageData.data)));
         } catch (e) {
           return new Response('Error processing JPEG: ' + e.message, { status: 500 });
         }
