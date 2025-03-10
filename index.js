@@ -13,7 +13,7 @@ async function handleRequest(request) {
       return new Response('OK', { status: 200 })
     }
 
-    if (request.method === 'POST' && path === '/api/pallete') {
+    if (request.method === 'POST' && path === '/api/palette') {
       const url = await request.text();
       
       // Fetch the image directly
@@ -26,12 +26,12 @@ async function handleRequest(request) {
       const arrayBuffer = await imageResponse.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       const peeper = new PixelPeeper();
-      let pallete = [];
+      let palette = [];
       if (contentType.includes('image/jpeg')) {
         try {
           peeper.extractPixels(uint8Array);
-          pallete = peeper.splitPixelsToBuckets(bucketSize);
-          return new Response(JSON.stringify(pallete), {
+          palette = peeper.splitPixelsToBuckets(bucketSize);
+          return new Response(JSON.stringify(palette), {
             headers: { 'Content-Type': 'application/json' }
           });
         } catch (e) {
@@ -42,8 +42,8 @@ async function handleRequest(request) {
       if (contentType.includes('image/png')) {
         try {
             peeper.extractPixels(uint8Array);
-            pallete = peeper.splitPixelsToBuckets(bucketSize);
-            return new Response(JSON.stringify(pallete), {
+            palette = peeper.splitPixelsToBuckets(bucketSize);
+            return new Response(JSON.stringify(palette), {
               headers: { 'Content-Type': 'application/json' }
             });
         } catch (e) {
