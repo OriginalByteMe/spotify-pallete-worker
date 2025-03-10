@@ -1,22 +1,24 @@
 class PixelPeeper {
+  pixels = [];
+
   constructor() {}
 
   extractPixels(imageData) {
-    const pixels = [];
-    const { data, width, height } = imageData;
+    // Clear existing pixels if need be
+    this.pixels = [];
 
     for (let i = 0; i < imageData.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const a = data[i + 3];
-      pixels.push([r, g, b, a]);
+      // When extracting pixels from an image in a 1D array, the pixel imageData is stored in the order of red, green, blue, alpha
+      // So to retrieve the RGBa values for each pixel, we need to access the imageData array at the current index and the next three indices
+      const r = imageData[i];
+      const g = imageData[i + 1];
+      const b = imageData[i + 2];
+      const a = imageData[i + 3];
+      this.pixels.push([r, g, b, a]);
     }
-
-    return pixels;
   }
 
-  findLargestColourRange(pixels) {
+  findLargestColourRange() {
     // Highest possible value for a pixel is 255 and lowest is 0, so flip the values to ensure min and max are set correctly
     let rMin = 255,
       rMax = 0;
@@ -26,8 +28,8 @@ class PixelPeeper {
       bMax = 0;
 
     // Find min and max for each colour for each pixel
-    for (let i = 0; i < pixels.length; i++) {
-      const [r, g, b] = pixels[i];
+    for (let i = 0; i < this.pixels.length; i++) {
+      const [r, g, b] = this.pixels[i];
 
       rMin = Math.min(rMin, r);
       rMax = Math.max(rMax, r);
@@ -51,20 +53,42 @@ class PixelPeeper {
     if (maxRange === bRange) return 2;
   }
 
-  splitPixelsToBuckets(pixels, num_buckets) {
-    const buckets = [];
-    // To ensure there are an even number of pixels in each bucket, calculate the size of each bucket
-    const bucketSize = Math.ceil(pixels.length / num_buckets);
+  splitPixelsToBuckets(num_buckets) {
+    // Create array to hold our dominant colors
+    const dominantColors = [];
 
-    const channel = findLargestColourRange(pixels);
+    // To ensure there are an even number of pixels in each bucket, calculate the size of each bucket
+    const bucketSize = Math.ceil(this.pixels.length / num_buckets);
+
+    const channel = this.findLargestColourRange();
     // Sort the pixels by the colour channel with the largest range
-    pixels = pixels.sort((a, b) => a[channel] - b[channel]);
-    // Split the pixels into buckets
-    for (let i = 0; i < pixels.length; i += bucketSize) {
-      buckets.push(pixels.slice(i, i + bucketSize));
+    this.pixels = this.pixels.sort((a, b) => a[channel] - b[channel]);
+
+    // Split the pixels into buckets and find dominant color for each
+    for (let i = 0; i < this.pixels.length; i += bucketSize) {
+      const bucket = this.pixels.slice(i, i + bucketSize);
+
+      // Calculate the average RGB values for this bucket (dominant color)
+      let rSum = 0,
+        gSum = 0,
+        bSum = 0;
+
+      for (const pixel of bucket) {
+        rSum += pixel[0];
+        gSum += pixel[1];
+        bSum += pixel[2];
+      }
+
+      const dominantColor = [
+        Math.round(rSum / bucket.length),
+        Math.round(gSum / bucket.length),
+        Math.round(bSum / bucket.length),
+      ];
+
+      dominantColors.push(dominantColor);
     }
 
-    return buckets;
+    return dominantColors;
   }
 
   async checkAndSeeTheImageData(imageData) {

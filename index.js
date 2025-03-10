@@ -1,7 +1,7 @@
-import { PNG } from 'pngjs/browser'
-import str from 'string-to-stream'
-var jpeg = require('jpeg-js')
+import { PNG } from 'pngjs/browser';
+import str from 'string-to-stream';
 import PixelPeeper from "./PixelPeeper.js";
+var jpeg = require('jpeg-js')
 
 async function handleRequest(request) {
   try {
@@ -24,11 +24,17 @@ async function handleRequest(request) {
       const contentType = imageResponse.headers.get('content-type');
       const arrayBuffer = await imageResponse.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
-      
+      const peeper = new PixelPeeper();
+      let pallete = [];
       if (contentType.includes('image/jpeg')) {
         try {
-          var rawImageData = jpeg.decode(arrayBuffer);
-          return new Response(JSON.stringify(meanRgba(rawImageData.width, rawImageData.height, rawImageData.data)));
+          peeper.extractPixels(uint8Array);
+          pallete = peeper.splitPixelsToBuckets(5);
+          return new Response(JSON.stringify(pallete), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          // var rawImageData = jpeg.decode(arrayBuffer);
+          // return new Response(JSON.stringify(meanRgba(rawImageData.width, rawImageData.height, rawImageData.data)));
         } catch (e) {
           return new Response('Error processing JPEG: ' + e.message, { status: 500 });
         }
@@ -36,20 +42,11 @@ async function handleRequest(request) {
       
       if (contentType.includes('image/png')) {
         try {
-          return await new Promise((ok, fail) => {
-            str(uint8Array)
-              .pipe(
-                new PNG({
-                  filterType: 4,
-                })
-              )
-              .on('parsed', function() {
-                ok(new Response(JSON.stringify(meanRgba(this.width, this.height, this.data))));
-              })
-              .on('error', function(err) {
-                fail(new Response('Error processing PNG: ' + err.message, { status: 500 }));
-              });
-          });
+            peeper.extractPixels(uint8Array);
+            pallete = peeper.splitPixelsToBuckets(5);
+            return new Response(JSON.stringify(pallete), {
+              headers: { 'Content-Type': 'application/json' }
+            });
         } catch (e) {
           return new Response('Error in PNG processing: ' + e.message, { status: 500 });
         }
