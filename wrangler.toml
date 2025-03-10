@@ -3,6 +3,13 @@ name = "spotify-pallete"
 compatibility_flags = [ "nodejs_compat" ]
 compatibility_date = "2024-09-23"
 
-account_id = ""
+account_id = "13583f5ff84f5693a4a859a769743849"
 workers_dev = true
 # route = ""
+
+[observability]
+enabled = true
+head_sampling_rate = 1 # optional. default = 1.
+
+[observability.logs]
+enabled = true
