@@ -6,6 +6,9 @@ async function handleRequest(request) {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // Get bucket size dynamically from URl, default is 5
+    const bucketSize = parseInt(url.searchParams.get('buckets') || '5', 10);
+
     if (request.method === 'GET' && path === '/api/health') {
       return new Response('OK', { status: 200 })
     }
@@ -27,7 +30,7 @@ async function handleRequest(request) {
       if (contentType.includes('image/jpeg')) {
         try {
           peeper.extractPixels(uint8Array);
-          pallete = peeper.splitPixelsToBuckets(5);
+          pallete = peeper.splitPixelsToBuckets(bucketSize);
           return new Response(JSON.stringify(pallete), {
             headers: { 'Content-Type': 'application/json' }
           });
@@ -39,7 +42,7 @@ async function handleRequest(request) {
       if (contentType.includes('image/png')) {
         try {
             peeper.extractPixels(uint8Array);
-            pallete = peeper.splitPixelsToBuckets(5);
+            pallete = peeper.splitPixelsToBuckets(bucketSize);
             return new Response(JSON.stringify(pallete), {
               headers: { 'Content-Type': 'application/json' }
             });
