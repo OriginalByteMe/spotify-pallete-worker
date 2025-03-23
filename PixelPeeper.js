@@ -119,10 +119,13 @@ class PixelPeeper {
     switch(dominantChannel){
       case "r":
         pixels.sort((a,b) => a[0] - b[0])
+        break
       case "g": 
         pixels.sort((a,b) => a[1] - b[1])
+        break
       case "b":
         pixels.sort((a,b) => a[2] - b[2])
+        break
     }
 
     // Split the pixels at the median point
