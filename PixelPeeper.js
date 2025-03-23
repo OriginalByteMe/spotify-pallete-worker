@@ -1,108 +1,9 @@
-/*
-function MedianCut(pixels, depth, maxDepth):
-    # Base case: if we've reached the maximum depth or have no pixels
-    if depth == maxDepth or pixels.length == 0:
-        return [CalculateRepresentativeColour(pixels)]
-    
-    # Find the color channel with the largest range
-    colourRanges = FindcolourRanges(pixels)
-    dominantChannel = FindDominantChannel(colourRanges)
-    
-    # Sort pixels by the dominant channel
-    pixels.sort(by: dominantChannel)
-    
-    # Split the pixels at the median point
-    median = pixels.length / 2
-    bucket1 = pixels[0:median]
-    bucket2 = pixels[median:end]
-    
-    # Recursively apply median cut to each bucket
-    return MedianCut(bucket1, depth+1, maxDepth) + MedianCut(bucket2, depth+1, maxDepth)
-
-function FindcolourRanges(pixels):
-    # Initialize min and max values for each channel
-    rMin = 255, rMax = 0
-    gMin = 255, gMax = 0
-    bMin = 255, bMax = 0
-    
-    # Find min and max values for each channel
-    for each pixel in pixels:
-        rMin = min(rMin, pixel.r)
-        rMax = max(rMax, pixel.r)
-        gMin = min(gMin, pixel.g)
-        gMax = max(gMax, pixel.g)
-        bMin = min(bMin, pixel.b)
-        bMax = max(bMax, pixel.b)
-    
-    # Calculate ranges
-    rRange = rMax - rMin
-    gRange = gMax - gMin
-    bRange = bMax - bMin
-    
-    return {r: {min: rMin, max: rMax, range: rRange},
-            g: {min: gMin, max: gMax, range: gRange},
-            b: {min: bMin, max: bMax, range: bRange}}
-
-function FindDominantChannel(colourRanges):
-    if colourRanges.r.range >= colourRanges.g.range and colourRanges.r.range >= colourRanges.b.range:
-        return 'r'
-    if colourRanges.g.range >= colourRanges.r.range and colourRanges.g.range >= colourRanges.b.range:
-        return 'g'
-    return 'b'
-
-function CalculateRepresentativeColour(pixels):
-    # If no pixels, return black
-    if pixels.length == 0:
-        return [0, 0, 0]
-    
-    # Option 1: Simple average (can lead to muddy colors)
-    rSum = gSum = bSum = 0
-    for each pixel in pixels:
-        rSum += pixel.r
-        gSum += pixel.g
-        bSum += pixel.b
-    
-    return [round(rSum/pixels.length), 
-            round(gSum/pixels.length), 
-            round(bSum/pixels.length)]
-    
-    # Option 2: Use most frequent color (better representation)
-    # Count frequency of each color
-    colorFrequency = {}
-    for each pixel in pixels:
-        colorKey = pixel.r + "," + pixel.g + "," + pixel.b
-        colorFrequency[colorKey] = (colorFrequency[colorKey] || 0) + 1
-    
-    # Find most frequent color
-    mostFrequentColor = FindMostFrequent(colorFrequency)
-    return mostFrequentColor
-
-# Main function to get palette
-function GetColorPalette(pixels, numColors):
-    # Calculate depth needed for desired number of colors
-    # 2^depth = numColors, so depth = log2(numColors)
-    depth = ceil(log2(numColors))
-    
-    # Apply median cut algorithm
-    palette = MedianCut(pixels, 0, depth)
-    
-    # Ensure we have exactly the requested number of colors
-    if palette.length > numColors:
-        return palette[0:numColors]
-    
-    # If we have fewer colors than requested, duplicate some
-    while palette.length < numColors:
-        palette.push(palette[palette.length % palette.length])
-    
-    return palette
-*/
-
 class PixelPeeper {
   pixels = [];
 
   constructor() {}
 
-  extractPixels(imageData) {
+  ExtractPixels(imageData) {
     // Clear existing pixels if need be
     this.pixels = [];
 
@@ -182,7 +83,7 @@ class PixelPeeper {
 
   FindMostFrequent(frequencies){
     // Convert object to array, reduce compare each value (second element of each) in terms of size and return the largest
-    mostFrequent = Object.entries(frequencies).reduce((a, b) => a[1] > b[1] ? a : b)[0]
+    const mostFrequent = Object.entries(frequencies).reduce((a, b) => a[1] > b[1] ? a : b)[0]
     return mostFrequent
   }
 
@@ -191,57 +92,69 @@ class PixelPeeper {
       return [0,0,0]
     }
 
-    colourFrequencies = {}
-
-    for(pixel in pixels){
+    let colourFrequencies = {}
+    for(const pixel of pixels){
       // Key will be for instance "125,52,255"
-      colourKey = pixel.r + "," + pixel.g + "," + pixel.b
+      const colourKey = pixel[0] + "," + pixel[1] + "," + pixel[2]
       // Increment on if colour key is present
       colourFrequencies[colourKey] = (colourFrequencies[colourKey] || 0) + 1
     }
 
-    mostFrequentColour = this.FindMostFrequent(colourFrequencies)
+    const mostFrequentColour = this.FindMostFrequent(colourFrequencies)
     return mostFrequentColour
   }
 
   
   MedianCut(pixels, depth, maxDepth){
-    /*
-    # Base case: if we've reached the maximum depth or have no pixels
-    if depth == maxDepth or pixels.length == 0:
-        return [CalculateRepresentativeColour(pixels)]
-    
-    # Find the color channel with the largest range
-    colourRanges = FindcolourRanges(pixels)
-    dominantChannel = FindDominantChannel(colourRanges)
-    
-    # Sort pixels by the dominant channel
-    pixels.sort(by: dominantChannel)
-    
-    # Split the pixels at the median point
-    median = pixels.length / 2
-    bucket1 = pixels[0:median]
-    bucket2 = pixels[median:end]
-    
-    # Recursively apply median cut to each bucket
-    return MedianCut(bucket1, depth+1, maxDepth) + MedianCut(bucket2, depth+1, maxDepth)
-    */
-
     // Final result of recursion branch, return colour
     if (depth == maxDepth || pixels.length == 0){
       return [this.CalculateRepresentativeColour(pixels)]
     }
 
     // Find the colour channel with the largest range
-    colourRanges = this.FindColourRanges(pixels)
-    dominantChannel = this.FindDominantChannel(colourRanges)
+    const colourRanges = this.FindColourRanges(pixels)
+    const dominantChannel = this.FindDominantChannel(colourRanges)
 
     // Sort pixels by the dominant colour channel
-    
+    switch(dominantChannel){
+      case "r":
+        pixels.sort((a,b) => a[0] - b[0])
+      case "g": 
+        pixels.sort((a,b) => a[1] - b[1])
+      case "b":
+        pixels.sort((a,b) => a[2] - b[2])
+    }
+
+    // Split the pixels at the median point
+    const median = Math.floor(pixels.length / 2)
+    const bucket1 = pixels.slice(0,median)
+    const bucket2 = pixels.slice(median)
+
+    // Recursively apply median cut to each bucket
+    return this.MedianCut(bucket1, depth+1, maxDepth).concat(this.MedianCut(bucket2, depth+1, maxDepth))
 
   }
   
-  GetColorPalette(num_colours){
+  GetColorPalette(numColours){
+
+    // 2^depth = numColours, so depth = log2(numColours)
+    const depth = Math.ceil(Math.log2(numColours))
+
+    // Apply median cut algorithm
+    const palette = this.MedianCut(this.pixels, 0, depth)
+
+
+    // # Ensure we have exactly the requested number of colors
+    if (palette.length > numColours){
+      return palette.slice(0,numColours)
+    }
+    
+    // # If we have fewer colors than requested, duplicate some
+    while (palette.length < numColours){
+      palette.push(palette[palette.length % palette.length])
+    }
+    
+    return palette
 
   }
 
@@ -252,6 +165,9 @@ class PixelPeeper {
     );
     const { data, width, height } = imageData;
     console.log("🚀 ~ PixelPeeper ~ checkAndSeeTheImageData ~ data:", data);
+
+    this.extractPixels(imageData);
+    console.log(this.pixels)
   }
 }
 

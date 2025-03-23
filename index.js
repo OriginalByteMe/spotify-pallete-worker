@@ -29,8 +29,8 @@ async function handleRequest(request) {
       let palette = [];
       if (contentType.includes('image/jpeg')) {
         try {
-          peeper.extractPixels(uint8Array);
-          palette = peeper.splitPixelsToBuckets(bucketSize);
+          peeper.ExtractPixels(uint8Array);
+          palette = peeper.GetColorPalette(bucketSize);
           return new Response(JSON.stringify(palette), {
             headers: { 'Content-Type': 'application/json' }
           });
@@ -41,8 +41,8 @@ async function handleRequest(request) {
       
       if (contentType.includes('image/png')) {
         try {
-            peeper.extractPixels(uint8Array);
-            palette = peeper.splitPixelsToBuckets(bucketSize);
+            peeper.ExtractPixels(uint8Array);
+            palette = peeper.GetColorPalette(bucketSize);
             return new Response(JSON.stringify(palette), {
               headers: { 'Content-Type': 'application/json' }
             });
