@@ -19,7 +19,7 @@ class PixelPeeper {
         const a = pixelData[i + 3];
         
         // Only include pixels with sufficient opacity
-        if (a >= 125) {
+        if (a > 0) {
           this.pixels.push([r, g, b]);
         }
       }
@@ -32,7 +32,7 @@ class PixelPeeper {
         const a = imageData[i + 3];
         
         // Only include pixels with sufficient opacity
-        if (a >= 125) {
+        if (a > 0) {
           this.pixels.push([r, g, b]);
         }
       }
@@ -101,7 +101,7 @@ class PixelPeeper {
     }
 
     const mostFrequentColour = this.FindMostFrequent(colourFrequencies)
-    return mostFrequentColour
+    return mostFrequentColour.split(',').map(Number)
   }
 
   
@@ -119,13 +119,13 @@ class PixelPeeper {
     switch(dominantChannel){
       case "r":
         pixels.sort((a,b) => a[0] - b[0])
-        break
+        break;
       case "g": 
         pixels.sort((a,b) => a[1] - b[1])
-        break
+        break;
       case "b":
         pixels.sort((a,b) => a[2] - b[2])
-        break
+        break;
     }
 
     // Split the pixels at the median point
@@ -138,27 +138,25 @@ class PixelPeeper {
 
   }
   
-  GetColorPalette(numColours){
 
+  GetColorPalette(numColours){
     // 2^depth = numColours, so depth = log2(numColours)
-    const depth = Math.ceil(Math.log2(numColours))
+    const depth = Math.ceil(Math.log2(numColours));
 
     // Apply median cut algorithm
-    const palette = this.MedianCut(this.pixels, 0, depth)
-
+    const palette = this.MedianCut(this.pixels, 0, depth);
 
     // # Ensure we have exactly the requested number of colors
     if (palette.length > numColours){
-      return palette.slice(0,numColours)
+      return palette.slice(0,numColours);
     }
     
     // # If we have fewer colors than requested, duplicate some
     while (palette.length < numColours){
-      palette.push(palette[palette.length % palette.length])
+      palette.push(palette[palette.length % palette.length]);
     }
     
-    return palette
-
+    return palette;
   }
 
   async checkAndSeeTheImageData(imageData) {
@@ -169,7 +167,7 @@ class PixelPeeper {
     const { data, width, height } = imageData;
     console.log("🚀 ~ PixelPeeper ~ checkAndSeeTheImageData ~ data:", data);
 
-    this.extractPixels(imageData);
+    this.ExtractPixels(imageData);
     console.log(this.pixels)
   }
 }
