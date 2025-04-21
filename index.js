@@ -1,5 +1,6 @@
 import PixelPeeper from "./PixelPeeper.js";
 var jpeg = require('jpeg-js')
+var png = require('png-js');
 
 async function handleRequest(request) {
   try {
@@ -29,7 +30,8 @@ async function handleRequest(request) {
       let palette = [];
       if (contentType.includes('image/jpeg')) {
         try {
-          peeper.ExtractPixels(uint8Array);
+          const imageData = jpeg.decode(uint8Array, { useTArray: true });
+          peeper.ExtractPixels(imageData);
           palette = peeper.GetColorPalette(bucketSize);
           return new Response(JSON.stringify(palette), {
             headers: { 'Content-Type': 'application/json' }
@@ -41,11 +43,12 @@ async function handleRequest(request) {
       
       if (contentType.includes('image/png')) {
         try {
-            peeper.ExtractPixels(uint8Array);
-            palette = peeper.GetColorPalette(bucketSize);
-            return new Response(JSON.stringify(palette), {
-              headers: { 'Content-Type': 'application/json' }
-            });
+          const imageData = png.decode(uint8Array);
+          peeper.ExtractPixels(imageData);
+          palette = peeper.GetColorPalette(bucketSize);
+          return new Response(JSON.stringify(palette), {
+            headers: { 'Content-Type': 'application/json' }
+          });
         } catch (e) {
           return new Response('Error in PNG processing: ' + e.message, { status: 500 });
         }
