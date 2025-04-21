@@ -87,21 +87,42 @@ class PixelPeeper {
     return mostFrequent
   }
 
-  CalculateRepresentativeColour(pixels){
-    if (pixels.length == 0) {
-      return [0,0,0]
-    }
+  // Helper: Convert RGB to HSL
+  rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
 
-    let colourFrequencies = {}
-    for(const pixel of pixels){
-      // Key will be for instance "125,52,255"
-      const colourKey = pixel[0] + "," + pixel[1] + "," + pixel[2]
-      // Increment on if colour key is present
-      colourFrequencies[colourKey] = (colourFrequencies[colourKey] || 0) + 1
+    if (max === min) {
+      h = s = 0; // achromatic
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
     }
+    return [h, s, l];
+  }
 
-    const mostFrequentColour = this.FindMostFrequent(colourFrequencies)
-    return mostFrequentColour.split(',').map(Number)
+  CalculateRepresentativeColour(pixels) {
+    if (pixels.length === 0) return [0, 0, 0];
+
+    let maxVibrancy = -1;
+    let vibrantPixel = pixels[0];
+
+    for (const [r, g, b] of pixels) {
+      const [h, s, l] = this.rgbToHsl(r, g, b);
+      const vibrancy = s * (1 - Math.abs(l - 0.65));
+      if (vibrancy > maxVibrancy) {
+        maxVibrancy = vibrancy;
+        vibrantPixel = [r, g, b];
+      } 
+    }
+    return vibrantPixel;
   }
 
   
@@ -156,6 +177,12 @@ class PixelPeeper {
       palette.push(palette[palette.length % palette.length]);
     }
     
+    palette.sort((a, b) => {
+      const brightnessA = 0.299 * a[0] + 0.587 * a[1] + 0.114 * a[2];
+      const brightnessB = 0.299 * b[0] + 0.587 * b[1] + 0.114 * b[2];
+      return brightnessB - brightnessA; // descending order
+    });
+
     return palette;
   }
 
