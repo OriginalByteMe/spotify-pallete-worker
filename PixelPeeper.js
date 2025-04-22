@@ -4,15 +4,19 @@ class PixelPeeper {
   constructor() {}
 
   ExtractPixels(imageData) {
+    const MAX_PIXELS = 50_000;
     // Clear existing pixels if need be
     this.pixels = [];
+
+    
 
     // Check if imageData is a decoded image object (from jpeg-js)
     if (imageData.data && imageData.width && imageData.height) {
       // Use the decoded data
       const pixelData = imageData.data;
-      
-      for (let i = 0; i < pixelData.length; i += 4) {
+      const total = pixelData.length >> 2;       // rgba groups
+      const stride = Math.max(1, Math.floor(total / MAX_PIXELS));
+      for (let i = 0; i < pixelData.length; i += stride * 4) {
         const r = pixelData[i];
         const g = pixelData[i + 1];
         const b = pixelData[i + 2];
@@ -125,7 +129,18 @@ class PixelPeeper {
     return vibrantPixel;
   }
 
+  nthElement(arr, n, channelIdx) {
+    if (arr.length === 1) return arr[0];
   
+    const pivot = arr[Math.floor(Math.random() * arr.length)][channelIdx];
+    const lows  = arr.filter(p => p[channelIdx] < pivot);
+    const highs = arr.filter(p => p[channelIdx] > pivot);
+    const pivots= arr.length - lows.length - highs.length;
+  
+    if (n < lows.length)        return this.nthElement(lows, n, channelIdx);
+    if (n < lows.length+pivots) return pivot;                       // found
+    return this.nthElement(highs, n - lows.length - pivots, channelIdx);
+  }
   MedianCut(pixels, depth, maxDepth){
     // Final result of recursion branch, return colour
     if (depth == maxDepth || pixels.length == 0){
@@ -162,7 +177,7 @@ class PixelPeeper {
 
   GetColorPalette(numColours){
     // 2^depth = numColours, so depth = log2(numColours)
-    const depth = Math.ceil(Math.log2(numColours));
+    const depth = Math.min(4, Math.ceil(Math.log2(numColours)));
 
     // Apply median cut algorithm
     const palette = this.MedianCut(this.pixels, 0, depth);
