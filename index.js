@@ -1,86 +1,87 @@
-import { PNG } from 'pngjs/browser'
-import str from 'string-to-stream'
+import PixelPeeper from "./PixelPeeper.js";
 var jpeg = require('jpeg-js')
+var png = require('png-js');
 
-function base64ToArrayBuffer(base64) {
-  var binary_string = atob(base64)
-  var len = binary_string.length
-  var bytes = new Uint8Array(len)
-  for (var i = 0; i < len; i++) {
-    bytes[i] = binary_string.charCodeAt(i)
-  }
-  return bytes.buffer
-}
-
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event))
-})
-
-async function handleRequest({ request }) {
+async function handleRequest(request) {
   try {
-    if (request.method === 'GET') {
-      const res = new Response(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Img color</title>
-        </head>
-        <body>
-          Upload an image (JPEG or PNG):
-          <input type="file" onchange="post()"/>
+    const url = new URL(request.url);
+    const path = url.pathname;
 
-          <script>
-            function post() {
-              var file = document.querySelector('input[type=file]').files[0];
-              var reader = new FileReader();
+    // Get bucket size dynamically from URl, default is 5
+    const bucketSize = parseInt(url.searchParams.get('buckets') || '5', 10);
 
-              reader.addEventListener('load', function () {
-                fetch(location.href, {
-                  method: "POST",
-                  body: reader.result
-                })
-                  .then(res => res.text())
-                  .then(rgb => {
-                    document.body.style.backgroundColor = "rgb(" + rgb + ")";
-                  });
-              }, false);
-
-              if (file) {
-                reader.readAsDataURL(file);
-              }
-            }
-          </script>
-        </body>
-      </html>
-    `)
-      res.headers.set('content-type', 'text/html')
-      return res
+    if (request.method === 'GET' && path === '/api/health') {
+      return new Response('OK', { status: 200 })
     }
 
-    if (request.method === 'POST') {
-      const [data, base64] = (await request.text()).split(',')
-
-      if (data === 'data:image/jpeg;base64') {
-        var rawImageData = jpeg.decode(base64ToArrayBuffer(base64))
-        return new Response(meanRgba(rawImageData.width, rawImageData.height, rawImageData.data))
+    if (request.method === 'POST' && path === '/api/palette') {
+      const url = await request.text();
+      
+      // Fetch the image directly
+      const imageResponse = await fetch(url);
+      if (!imageResponse.ok) {
+        return new Response(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`, { status: 500 });
       }
-
-      if (data === 'data:image/png;base64') {
-        return await new Promise(ok => {
-          str(base64ToArrayBuffer(base64))
-            .pipe(
-              new PNG({
-                filterType: 4,
-              })
-            )
-            .on('parsed', function() {
-              ok(new Response(meanRgba(this.width, this.height, this.data)))
-            })
-        })
+      
+      const contentType = imageResponse.headers.get('content-type');
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const peeper = new PixelPeeper();
+      let palette = [];
+      if (contentType.includes('image/jpeg')) {
+        try {
+          const imageData = jpeg.decode(uint8Array, { useTArray: true });
+          peeper.ExtractPixels(imageData);
+          palette = peeper.GetColorPalette(bucketSize);
+          return new Response(JSON.stringify(palette), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } catch (e) {
+          return new Response('Error processing JPEG: ' + e.message, { status: 500 });
+        }
       }
+      
+      if (contentType.includes('image/png')) {
+        try {
+          const imageData = png.decode(uint8Array);
+          peeper.ExtractPixels(imageData);
+          palette = peeper.GetColorPalette(bucketSize);
+          return new Response(JSON.stringify(palette), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } catch (e) {
+          return new Response('Error in PNG processing: ' + e.message, { status: 500 });
+        }
+      }
+      
+      return new Response('Unsupported image type: ' + contentType, { status: 400 });
+    }
 
-      return new Response('unsupported: ' + data, { status: 400 })
+    if (request.method === 'POST' && path === '/api/data_inspect') {
+      const url = await request.text();
+      
+      // Fetch the image
+      const imageResponse = await fetch(url);
+      if (!imageResponse.ok) {
+        return new Response(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`, { status: 500 });
+      }
+      
+      const contentType = imageResponse.headers.get('content-type');
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      const imageData = jpeg.decode(arrayBuffer);
+      
+      // Create a PixelPeeper instance to get detailed color information
+      const peeper = new PixelPeeper();
+      try {
+        const data = await peeper.checkAndSeeTheImageData(uint8Array);
+        return new Response(JSON.stringify(data), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (e) {
+        return new Response('Error in image analysis: ' + e.message, { status: 500 });
+      }
     }
 
     return new Response('not found', { status: 404 })
@@ -103,4 +104,8 @@ function meanRgba(w, h, matrix) {
   }
 
   return [Math.floor(rgb[0] / size), Math.floor(rgb[1] / size), Math.floor(rgb[2] / size)]
+}
+
+export default {
+  fetch: handleRequest
 }
