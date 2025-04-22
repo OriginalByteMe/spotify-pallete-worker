@@ -7,6 +7,7 @@
   "dependencies": {
     "express": "^4.21.2",
     "jpeg-js": "^0.3.5",
+    "png-js": "^1.0.0",
     "pngjs": "^3.4.0",
     "string-to-stream": "^1.1.1"
   },
